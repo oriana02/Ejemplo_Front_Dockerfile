@@ -27,7 +27,7 @@ jobs:
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/front:latest
 
       - name: Desplegar imagen en AWS
-        uses: appleboy/ssh-action@1.0.3
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
