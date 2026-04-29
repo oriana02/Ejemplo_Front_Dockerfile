@@ -1,0 +1,45 @@
+name: Contruye y Despliega imagen en AWS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar codigo del repo
+        uses: actions/checkout@v4
+
+      - name: Iniciar sesion en Docker
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Construir y publicar imagen Docker
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/front:latest
+
+      - name: Desplegar imagen en AWS
+        uses: appleboy/ssh-action@1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/front:latest
+
+            docker stop front || true
+            docker rm front || true
+
+            docker run -d \
+              --name front \
+              -p 80:80 \
+              --restart always \
+              ${{ secrets.DOCKERHUB_USERNAME }}/front:latest
