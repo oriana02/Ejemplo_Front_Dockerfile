@@ -1,4 +1,4 @@
-name: Contruye y Despliega imagen en AWS
+name: Build y Deploy Frontend (Docker + EC2)
 
 on:
   push:
@@ -10,36 +10,41 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Descargar codigo del repo
+      - name: Checkout del repositorio
         uses: actions/checkout@v4
 
-      - name: Iniciar sesion en Docker
+      - name: Login a Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Construir y publicar imagen Docker
+      - name: Build y push de la imagen
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/front:latest
 
-      - name: Desplegar imagen en AWS
+      - name: Deploy en EC2 via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            echo " Descargando contenedor anterior..."
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/front:latest
 
+            echo "Deteniendo contenedor anterior..."
             docker stop front || true
             docker rm front || true
 
+            echo " Levantando nuevo contenedor..."
             docker run -d \
               --name front \
               -p 80:80 \
               --restart always \
               ${{ secrets.DOCKERHUB_USERNAME }}/front:latest
+
+              echo " Deploy completado"
